@@ -4,6 +4,7 @@
  * Search and runtime filter; each card opens the example in the simulator.
  */
 import React, { useMemo, useState } from 'react';
+import { PUBLIC_URL } from '../../lib/brand';
 import { useSEO } from '../../utils/useSEO';
 import { ExampleCard, SiteShell } from './SiteChrome';
 import { siteExamples } from './siteData';
@@ -13,7 +14,7 @@ export const ExamplesListPage: React.FC = () => {
     title: 'Examples — php-baremetal sim',
     description:
       'Every php-baremetal example that runs in the simulator: PHP 8.5 on an emulated ESP32-S3, with its circuit, runtime and packages. Open one and press Run.',
-    url: typeof window !== 'undefined' ? window.location.origin + '/examples' : '/examples',
+    url: `${PUBLIC_URL}/examples`,
   });
   const all = useMemo(() => siteExamples(), []);
   const runtimes = useMemo(() => [...new Set(all.map((e) => e.runtime))].sort(), [all]);

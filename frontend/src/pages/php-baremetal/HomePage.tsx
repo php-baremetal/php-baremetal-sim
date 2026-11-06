@@ -9,7 +9,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../../utils/useSEO';
-import { DOCS_URL, REGISTRY_URL } from '../../lib/brand';
+import { DOCS_URL, PUBLIC_URL, REGISTRY_URL } from '../../lib/brand';
 import { ExampleCard, SiteShell } from './SiteChrome';
 import { siteExamples } from './siteData';
 
@@ -178,7 +178,7 @@ export const HomePage: React.FC = () => {
     title: 'php-baremetal sim — PHP on an emulated ESP32-S3',
     description:
       'Write PHP 8.5, press Run and watch an emulated ESP32-S3 blink LEDs, read buttons and print to the serial monitor. Nothing to install, nothing to flash. Based on Velxio.',
-    url: typeof window !== 'undefined' ? window.location.origin + '/' : '/',
+    url: `${PUBLIC_URL}/`,
   });
   const examples = useMemo(() => siteExamples(), []);
   const firstExample = examples[0];

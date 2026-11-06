@@ -4,6 +4,7 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { PUBLIC_URL } from '../lib/brand';
+import { PHP_BAREMETAL_PROFILE } from '../lib/simProfile';
 import { useTranslation } from 'react-i18next';
 import { startSimulation } from '../simulation/spice/start';
 import { useSEO } from '../utils/useSEO';
@@ -77,13 +78,24 @@ export const EditorPage: React.FC = () => {
   // php-baremetal fork: inside /example/<id> the example page has already set
   // the example's title; the editor mounts after it and must not overwrite it.
   const onExamplePage = /\/example\//.test(window.location.pathname);
+  // Under the profile: the php-baremetal title/description (same text as the
+  // static head scripts/php-baremetal-seo.mjs writes for /editor/), and on an
+  // example page its own URL as canonical, not /editor.
+  const exampleDescription =
+    document.querySelector('meta[name="description"]')?.getAttribute('content') ?? '';
   useSEO({
     title: onExamplePage
       ? document.title
-      : 'Multi-Board Simulator Editor — Arduino, ESP32, RP2040, RISC-V | Velxio',
-    description:
-      'Write, compile and simulate Arduino, ESP32, Raspberry Pi Pico, ESP32-C3, and Raspberry Pi 3 code in your browser. 19 boards, 5 CPU architectures, 48+ components. Free and open-source.',
-    url: `${PUBLIC_URL}/editor`, // php-baremetal fork: our domain
+      : PHP_BAREMETAL_PROFILE
+        ? 'Editor — php-baremetal sim'
+        : 'Multi-Board Simulator Editor — Arduino, ESP32, RP2040, RISC-V | Velxio',
+    description: onExamplePage && PHP_BAREMETAL_PROFILE && exampleDescription
+      ? exampleDescription
+      : PHP_BAREMETAL_PROFILE
+        ? 'Write PHP 8.5 for an emulated ESP32-S3, add php-baremetal packages and press Run: the firmware is built for you and runs in your browser.'
+        : 'Write, compile and simulate Arduino, ESP32, Raspberry Pi Pico, ESP32-C3, and Raspberry Pi 3 code in your browser. 19 boards, 5 CPU architectures, 48+ components. Free and open-source.',
+    // php-baremetal fork: our domain
+    url: onExamplePage ? `${PUBLIC_URL}${window.location.pathname}` : `${PUBLIC_URL}/editor`,
   });
 
   // Silent auto-save for the loaded project (only fires when authed AND

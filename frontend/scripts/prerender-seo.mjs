@@ -22,6 +22,13 @@ import { fileURLToPath } from 'url';
 import { createServer } from 'vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// php-baremetal fork: these are Velxio's pages with velxio.dev canonicals;
+// under the profile scripts/php-baremetal-seo.mjs writes our own instead.
+if (process.env.VITE_SIM_PROFILE === 'php-baremetal') {
+  console.log('prerender-seo: skipped (php-baremetal profile)');
+  process.exit(0);
+}
 const distDir = join(__dirname, '..', 'dist');
 
 // Check that dist exists (vite build must have run first)

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { LOCALES, LOCALE_META, DEFAULT_LOCALE } from '../i18n/config';
 import { brandTitle, PUBLIC_URL } from '../lib/brand';
+import { PHP_BAREMETAL_PROFILE } from '../lib/simProfile';
 import { getLocaleFromPath, stripLocaleFromPath, localizedPath } from '../i18n/path';
 import { SEO_ROUTES } from '../seoRoutes';
 
@@ -72,7 +73,10 @@ function localeLinks(url: string): { canonical: string; alternates: { hreflang: 
   } catch {
     return { canonical: canonicalDefault, alternates: [] };
   }
-  if (!isLocalizedRoute(strippedPath)) return { canonical: canonicalDefault, alternates: [] };
+  // php-baremetal fork: the site's pages exist in English only, so no hreflang.
+  if (PHP_BAREMETAL_PROFILE || !isLocalizedRoute(strippedPath)) {
+    return { canonical: canonicalDefault, alternates: [] };
+  }
   // A page whose canonical is another page (/v2 -> /) keeps that canonical
   // as given and declares no alternates.
   if (typeof window !== 'undefined') {

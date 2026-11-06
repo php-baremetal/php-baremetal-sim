@@ -56,3 +56,7 @@ LICENSE
 # (Dockerfile.php-baremetal, scripts/phpbm_warm.py); a local copy must not
 # leak into the frontend stage and make local and CI images differ.
 frontend/public/firmware/php-baremetal/*.bin
+
+# php-baremetal fork: the CI checks phpbm out here before staging it into
+# prebuilt/phpbm; the checkout itself never belongs in the build context.
+.phpbm-src/

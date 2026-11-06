@@ -1,0 +1,95 @@
+# php-baremetal fork: put an image on the server.
+#
+# Started by hand only (Actions → "php-baremetal: deploy" → Run workflow): it
+# copies deploy/docker-compose.yml to the server, pulls the chosen image tag,
+# restarts the container and checks /health. Nothing here runs on a push.
+#
+# Secrets, in the "production" environment (Settings → Environments), so the
+# environment can also require an approval before each deploy:
+#   DEPLOY_HOST         server name or IP
+#   DEPLOY_USER         SSH user (in the docker group)
+#   DEPLOY_SSH_KEY      private key of a deploy-only key pair (ed25519)
+#   DEPLOY_KNOWN_HOSTS  output of `ssh-keyscan -t ed25519 <host>`, so the host is pinned
+#   DEPLOY_PORT         optional, default 22
+# Optional, only while the GHCR package is private:
+#   GHCR_READ_TOKEN     token with read:packages, used by the server to pull
+name: "php-baremetal: deploy"
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to run (latest, or sha-<short> from the image workflow)"
+        required: true
+        default: "latest"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: php-baremetal-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.repository == 'php-baremetal/php-baremetal-sim'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      APP_DIR: /opt/php-baremetal-sim
+      IMAGE_TAG: ${{ inputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SSH setup
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host server
+            HostName ${{ secrets.DEPLOY_HOST }}
+            User ${{ secrets.DEPLOY_USER }}
+            Port ${{ secrets.DEPLOY_PORT || '22' }}
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+
+      - name: Copy the compose file
+        run: |
+          ssh server "mkdir -p '$APP_DIR'"
+          scp deploy/docker-compose.yml "server:$APP_DIR/docker-compose.yml"
+
+      - name: Pull and restart
+        env:
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${GHCR_READ_TOKEN:-}" ]; then
+            printf '%s' "$GHCR_READ_TOKEN" | ssh server "docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin"
+          fi
+          # The tag goes into the server's .env, so a reboot or a manual
+          # `docker compose up` keeps running the version deployed last.
+          ssh server "cd '$APP_DIR' && touch .env && sed -i '/^IMAGE_TAG=/d' .env && echo 'IMAGE_TAG=$IMAGE_TAG' >> .env \
+            && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 30); do
+            if ssh server "curl -fsS http://127.0.0.1:3080/health"; then
+              echo; echo "healthy after ~$((i * 5)) s"; exit 0
+            fi
+            sleep 5
+          done
+          ssh server "cd '$APP_DIR' && docker compose logs --tail 80"
+          exit 1
+
+      - name: Summary
+        run: echo "Deployed \`ghcr.io/php-baremetal/php-baremetal-sim:$IMAGE_TAG\` to the server." >> "$GITHUB_STEP_SUMMARY"

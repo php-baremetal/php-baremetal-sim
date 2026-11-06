@@ -1,0 +1,36 @@
+# php-baremetal simulator on a server (php-baremetal fork).
+#
+# Lives in /opt/php-baremetal-sim/ on the server, next to an optional .env:
+#   IMAGE_TAG=latest            # or sha-<short> from the image workflow
+#   MAX_ESP32_SESSIONS=4        # concurrent emulators (~1 CPU core each while running)
+#   ESP32_SESSION_TIMEOUT_S=600 # a run is stopped after this many seconds
+#   PHPBM_MAX_PARALLEL_BUILDS=1 # engine builds at once (a new package set, CPU-heavy)
+#
+# The container only listens on 127.0.0.1:3080; a reverse proxy (Caddyfile next
+# to this file) serves it over HTTPS, WebSocket included.
+services:
+  sim:
+    image: ghcr.io/php-baremetal/php-baremetal-sim:${IMAGE_TAG:-latest}
+    container_name: php-baremetal-sim
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3080:80"
+    environment:
+      MAX_ESP32_SESSIONS: ${MAX_ESP32_SESSIONS:-4}
+      ESP32_SESSION_TIMEOUT_S: ${ESP32_SESSION_TIMEOUT_S:-600}
+      PHPBM_MAX_PARALLEL_BUILDS: ${PHPBM_MAX_PARALLEL_BUILDS:-1}
+    volumes:
+      - sim-data:/app/data
+      # Engines cached per lock (one per package set ever built). Starts as a
+      # copy of the image's (the gallery examples' engines).
+      - phpbm-cache:/var/cache/phpbm-sim
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  sim-data:
+  phpbm-cache:

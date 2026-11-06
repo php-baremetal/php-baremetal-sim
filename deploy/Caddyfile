@@ -1,0 +1,12 @@
+# Reverse proxy for the simulator (php-baremetal fork). Caddy gets and renews the
+# TLS certificate by itself and proxies WebSockets (/api/simulation/ws/...)
+# without extra settings. Replace the host name with yours.
+sim.php-baremetal.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3080 {
+		# a cold engine build is polled, never held open; 10 min is plenty
+		transport http {
+			read_timeout 10m
+		}
+	}
+}

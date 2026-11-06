@@ -39,6 +39,10 @@ WORKDIR /app
 COPY frontend/ frontend/
 COPY scripts/ scripts/
 WORKDIR /app/frontend
+# The "Source of this site" link (AGPLv3 §13). CI passes the exact commit the
+# image is built from (…/php-baremetal-sim/tree/<sha>); default: the repo.
+ARG VITE_SOURCE_URL=https://github.com/php-baremetal/php-baremetal-sim
+ENV VITE_SOURCE_URL=${VITE_SOURCE_URL}
 ENV VITE_ENABLE_COMPILE=false \
     VITE_SIM_PROFILE=php-baremetal
 # npm 11: see Dockerfile.standalone (npm 10.8's arborist crashes on this tree).

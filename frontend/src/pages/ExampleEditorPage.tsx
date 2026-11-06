@@ -22,6 +22,7 @@
  */
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { PUBLIC_URL } from '../lib/brand';
 import { useParams } from 'react-router-dom';
 import { exampleProjects, subscribeProExamples,
   areProExamplesSettled, getProExamplesVersion } from '../data/examples';
@@ -31,7 +32,8 @@ import { AppHeader } from '../components/layout/AppHeader';
 import { useSEO } from '../utils/useSEO';
 import { starterBoard, starterTitle, starterDescription } from '../data/starters';
 
-const DOMAIN = 'https://velxio.dev';
+// php-baremetal fork: this deployment's domain (lib/brand.ts), not velxio.dev.
+const DOMAIN = PUBLIC_URL;
 
 export const ExampleEditorPage: React.FC = () => {
   // Re-render when the pro overlay registers late examples (dynamic import).

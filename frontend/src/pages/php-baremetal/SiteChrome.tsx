@@ -35,9 +35,7 @@ const TopBar: React.FC = () => {
     <header className="pbm-top">
       <div className="pbm-wrap pbm-top__row">
         <Link to="/" className="pbm-logo" aria-label="php-baremetal sim, home">
-          <span className="pbm-logo__mark" aria-hidden="true">
-            <span />
-          </span>
+          <img className="pbm-logo__img" src="/brand/php-baremetal-logo-light.svg" alt="" width="44" height="36" />
           <span className="pbm-logo__word">
             php<i>-</i>baremetal
           </span>

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { LOCALES, LOCALE_META, DEFAULT_LOCALE } from '../i18n/config';
-import { brandTitle } from '../lib/brand';
+import { brandTitle, PUBLIC_URL } from '../lib/brand';
 import { getLocaleFromPath, stripLocaleFromPath, localizedPath } from '../i18n/path';
 import { SEO_ROUTES } from '../seoRoutes';
 
@@ -27,7 +27,7 @@ function qs(selector: string): HTMLMetaElement | null {
  */
 function withTrailingSlash(u: string): string {
   try {
-    const parsed = new URL(u, 'https://velxio.dev');
+    const parsed = new URL(u, PUBLIC_URL);
     if (!parsed.pathname.endsWith('/')) parsed.pathname += '/';
     return parsed.toString();
   } catch {
@@ -35,7 +35,9 @@ function withTrailingSlash(u: string): string {
   }
 }
 
-const DOMAIN = 'https://velxio.dev';
+// php-baremetal fork: canonical/hreflang on this deployment's domain, not velxio.dev
+// (a velxio.dev canonical tells search engines our pages are copies of Velxio's).
+const DOMAIN = PUBLIC_URL;
 const HREFLANG_ATTR = 'data-seo-hreflang';
 
 /**

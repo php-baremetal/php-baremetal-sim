@@ -82,6 +82,7 @@
 .pbm-top { border-bottom: 1px solid var(--pbm-ink); background: var(--pbm-paper); }
 .pbm-top__row { min-height: 64px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding-top: 8px; padding-bottom: 8px; }
 .pbm-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--pbm-ink); }
+.pbm-logo__img { display: block; width: 44px; height: 36px; }
 .pbm-logo__mark { width: 28px; height: 28px; background: var(--pbm-ink); display: flex; align-items: center; justify-content: center; }
 .pbm-logo__mark span { width: 12px; height: 12px; border: 2px solid var(--pbm-accent); }
 .pbm-logo__word { font-family: var(--pbm-mono); font-weight: 600; font-size: 16px; }
@@ -213,3 +214,13 @@
 .pbm-foot__links { display: flex; flex-wrap: wrap; gap: 20px; }
 .pbm-foot b { color: var(--pbm-dark-text); font-weight: 600; }
 .pbm-foot b i { font-style: normal; color: #ff8a5c; }
+
+/* SDK 2.0.0 preview notice (home page) */
+.pbm-preview { border-bottom: 1px solid var(--pbm-ink); }
+.pbm-preview__row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-top: 14px; padding-bottom: 14px; background: var(--pbm-accent); }
+.pbm-preview > .pbm-preview__row { max-width: none; padding-left: max(32px, calc((100% - 1280px) / 2 + 32px)); padding-right: max(32px, calc((100% - 1280px) / 2 + 32px)); }
+@media (max-width: 640px) { .pbm-preview > .pbm-preview__row { padding-left: 16px; padding-right: 16px; } }
+.pbm-preview__tag { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; background: var(--pbm-ink); color: var(--pbm-paper); font-family: var(--pbm-mono); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+.pbm-preview__dot { width: 8px; height: 8px; border-radius: 50%; background: #3ddc84; animation: pbm-pulse 1.6s ease-in-out infinite; }
+@keyframes pbm-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.pbm-preview__text { margin: 0; flex: 1 1 420px; font-size: 16px; color: var(--pbm-ink); }

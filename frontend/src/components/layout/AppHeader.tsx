@@ -136,20 +136,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ editorMenu, editorToolbar 
         <div className="header-left">
           {/* Brand */}
           <div className="header-brand">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#0071e3"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="5" y="5" width="14" height="14" rx="2" />
-              <rect x="9" y="9" width="6" height="6" />
-              <path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4" />
-            </svg>
+            {/* php-baremetal fork: the project logo, painted in the header's text
+                colour (CSS mask), so it follows the light/dark theme. */}
+            <span
+              aria-hidden="true"
+              style={{
+                display: 'inline-block',
+                width: 26,
+                height: 22,
+                backgroundColor: 'currentColor',
+                WebkitMask: 'url(/brand/php-baremetal-logo-light.svg) center / contain no-repeat',
+                mask: 'url(/brand/php-baremetal-logo-light.svg) center / contain no-repeat',
+              }}
+            />
             <Link to={localize('/')} style={{ textDecoration: 'none', color: 'inherit' }}>
               <span className="header-title">{APP_NAME}</span>
             </Link>

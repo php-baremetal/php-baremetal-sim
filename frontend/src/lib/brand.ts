@@ -8,6 +8,9 @@
  */
 export const APP_NAME = 'php-baremetal sim';
 export const SITE_URL = 'https://php-baremetal.com';
+/** Where this deployment is served: canonical URLs, hreflang, link previews. */
+export const PUBLIC_URL: string =
+  (import.meta.env.VITE_PUBLIC_URL as string | undefined)?.replace(/\/$/, '') || 'https://sim.php-baremetal.com';
 /** The source code of THIS deployment (the fork), as AGPLv3 §13 requires. */
 export const SOURCE_URL =
   import.meta.env.VITE_SOURCE_URL || 'https://github.com/php-baremetal/php-baremetal-sim';

@@ -192,6 +192,20 @@ export const HomePage: React.FC = () => {
 
   return (
     <SiteShell>
+      {/* SDK 2.0.0 PREVIEW NOTICE */}
+      <aside className="pbm-preview" aria-label="Preview notice">
+        <div className="pbm-wrap pbm-preview__row">
+          <span className="pbm-preview__tag">
+            <span className="pbm-preview__dot" aria-hidden="true" />
+            Preview
+          </span>
+          <p className="pbm-preview__text">
+            <b>Hot off the bench:</b> this simulator runs the new <b>php-baremetal SDK 2.0.0</b>{' '}
+            before it ships. The release is planned for <b>the end of November</b>.
+          </p>
+        </div>
+      </aside>
+
       {/* HERO */}
       <section className="pbm-section">
         <div className="pbm-wrap pbm-hero__inner">

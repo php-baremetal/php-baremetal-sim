@@ -10,6 +10,7 @@
  */
 
 import React from 'react';
+import { PUBLIC_URL } from '../lib/brand';
 import { useSyncExternalStore } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { exampleProjects, subscribeProExamples, getProExamplesVersion } from '../data/examples';
@@ -17,7 +18,8 @@ import { AppHeader } from '../components/layout/AppHeader';
 import { ExampleThumbnail } from '../components/examples/ExampleThumbnail';
 import { useSEO } from '../utils/useSEO';
 
-const DOMAIN = 'https://velxio.dev';
+// php-baremetal fork: this deployment's domain (lib/brand.ts), not velxio.dev.
+const DOMAIN = PUBLIC_URL;
 
 const BOARD_LABELS: Record<string, string> = {
   'arduino-uno': 'Arduino Uno',

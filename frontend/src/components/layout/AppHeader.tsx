@@ -10,8 +10,11 @@ import { blogUrlFor } from '../../i18n/path';
 import { trackVisitGitHub, trackVisitDiscord } from '../../utils/analytics';
 import { applyStripLayout, STRIP_BELOW_CLASS } from './headerStripFit';
 import './LanguageSwitcher.css';
+import { APP_NAME, ATTRIBUTION, SOURCE_URL, UPSTREAM_URL } from '../../lib/brand';
+import { PHP_BAREMETAL_PROFILE } from '../../lib/simProfile';
 
-const GITHUB_URL = 'https://github.com/davidmonterocrespo24/velxio';
+// php-baremetal fork: the GitHub link is this deployment's source (AGPL §13).
+const GITHUB_URL = SOURCE_URL;
 const DISCORD_URL = 'https://discord.gg/3mARjJrh4E';
 
 interface AppHeaderProps {
@@ -148,8 +151,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ editorMenu, editorToolbar 
               <path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4" />
             </svg>
             <Link to={localize('/')} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span className="header-title">Velxio</span>
+              <span className="header-title">{APP_NAME}</span>
             </Link>
+            {/* AGPLv3 §13 + attribution: visible on every page, editor included. */}
+            <a
+              href={SOURCE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`${ATTRIBUTION}. Source code of this site: ${SOURCE_URL} — upstream: ${UPSTREAM_URL}`}
+              style={{ marginLeft: 8, fontSize: 11, opacity: 0.7, color: 'inherit', whiteSpace: 'nowrap' }}
+            >
+              based on Velxio · source
+            </a>
           </div>
 
           {/* Main nav links (web only). The Tauri desktop build hides
@@ -226,6 +239,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ editorMenu, editorToolbar 
               </svg>
               {t('header.nav.github')}
             </a>
+            {/* php-baremetal fork: Velxio's Discord is not this site's community. */}
+            {!PHP_BAREMETAL_PROFILE && (
             <a
               href={DISCORD_URL}
               target="_blank"
@@ -244,6 +259,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ editorMenu, editorToolbar 
               </svg>
               {t('header.nav.discord')}
             </a>
+            )}
           </nav>
           )}
         </div>

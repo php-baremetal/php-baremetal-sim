@@ -73,8 +73,13 @@ const resizeHandleStyle: React.CSSProperties = {
 
 export const EditorPage: React.FC = () => {
   const { t } = useTranslation();
+  // php-baremetal fork: inside /example/<id> the example page has already set
+  // the example's title; the editor mounts after it and must not overwrite it.
+  const onExamplePage = /\/example\//.test(window.location.pathname);
   useSEO({
-    title: 'Multi-Board Simulator Editor — Arduino, ESP32, RP2040, RISC-V | Velxio',
+    title: onExamplePage
+      ? document.title
+      : 'Multi-Board Simulator Editor — Arduino, ESP32, RP2040, RISC-V | Velxio',
     description:
       'Write, compile and simulate Arduino, ESP32, Raspberry Pi Pico, ESP32-C3, and Raspberry Pi 3 code in your browser. 19 boards, 5 CPU architectures, 48+ components. Free and open-source.',
     url: 'https://velxio.dev/editor',

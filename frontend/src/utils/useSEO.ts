@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { LOCALES, LOCALE_META, DEFAULT_LOCALE } from '../i18n/config';
+import { brandTitle } from '../lib/brand';
 import { getLocaleFromPath, stripLocaleFromPath, localizedPath } from '../i18n/path';
 import { SEO_ROUTES } from '../seoRoutes';
 
@@ -157,16 +158,18 @@ export function useSEO({ title, description, url, ogImage, jsonLd, noindex }: SE
         addedHreflang.push(link);
       }
     }
-    document.title = title;
+    // php-baremetal fork: every title in this deployment's name (lib/brand.ts).
+    const pageTitle = brandTitle(title);
+    document.title = pageTitle;
     set(descEl, description);
     if (noindex) {
       set(robotsEl, 'noindex, nofollow');
     }
-    set(ogTitleEl, title);
+    set(ogTitleEl, pageTitle);
     set(ogDescEl, description);
     set(ogUrlEl, canonicalUrl);
     if (ogImage) set(ogImgEl, ogImage);
-    set(twTitleEl, title);
+    set(twTitleEl, pageTitle);
     set(twDescEl, description);
     activeCanonical.setAttribute('href', canonicalUrl);
 

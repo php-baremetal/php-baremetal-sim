@@ -51,3 +51,8 @@ LICENSE
 
 # Logs
 *.log
+
+# php-baremetal fork: example firmware is built INSIDE the image
+# (Dockerfile.php-baremetal, scripts/phpbm_warm.py); a local copy must not
+# leak into the frontend stage and make local and CI images differ.
+frontend/public/firmware/php-baremetal/*.bin

@@ -1222,8 +1222,10 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onSaveClick, onNewCl
                       clear which board it belongs to. There is one per board.
                       Clicking switches to the board and opens the Library
                       Manager on its list. QEMU-Linux boards run Python in a
-                      guest OS — no arduino-cli manifest, so no row. */}
-                  {!isPiBoardKind(board.boardKind) && (
+                      guest OS — no arduino-cli manifest, so no row.
+                      php-baremetal fork: neither has a PHP board — its
+                      packages live in composer.json. */}
+                  {!isPiBoardKind(board.boardKind) && board.languageMode !== 'php' && (
                   <div
                     className={`file-explorer-item fe-file-item${
                       manifestViewBoardId === board.id ? ' file-explorer-item-active' : ''

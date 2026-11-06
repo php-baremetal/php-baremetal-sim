@@ -23,6 +23,7 @@ import { infraredExamples } from './examples-infrared';
 import { esp32MqttExamples } from './examples-esp32-mqtt';
 import { esp32s3TftExamples } from './examples-esp32s3-tft';
 import { jsemuChipExamples } from './examples-jsemu-chips';
+import { phpBaremetalExamples } from './examples-php-baremetal';
 import eeprom24c01C from '../components/customChips/examples/eeprom-24c01.c?raw';
 import eeprom24c01J from '../components/customChips/examples/eeprom-24c01.chip.json?raw';
 
@@ -48,6 +49,11 @@ export interface ExampleBoard {
    *  loader fetches it when the example opens and stores the bytes on the
    *  board exactly like an inline file. */
   sdFiles?: ExampleSdFile[];
+  /** php-baremetal fork: a firmware image (same origin, e.g.
+   *  /firmware/php-baremetal/blink-sos.bin) loaded onto this board when the
+   *  example opens, through the same path as "Upload firmware". Run boots it
+   *  without compiling; `code`/`files` are then just the sources to read. */
+  prebuiltFirmwareUrl?: string;
 }
 
 /** One file on an example board's built-in microSD: inline bytes, or a URL
@@ -12928,6 +12934,7 @@ export const exampleProjects: ExampleProject[] = [
   ...microsdExamples,
   ...infraredExamples,
   ...esp32MqttExamples,
+  ...phpBaremetalExamples,
   ...esp32s3TftExamples,
   ...jsemuChipExamples,
 ];

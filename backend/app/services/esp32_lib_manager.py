@@ -202,6 +202,41 @@ class _WorkerInstance:
     running:    bool = True
     wifi_enabled: bool = False
     wifi_hostfwd_port: int = 0
+    # php-baremetal fork: the session-timeout timer (ESP32_SESSION_TIMEOUT_S).
+    deadline:   asyncio.TimerHandle | None = None
+
+
+# ── Public-instance limits (php-baremetal fork) ───────────────────────────────
+# A public deployment must bound how many QEMU workers run at once and for how
+# long: each one is a full emulator process (~1 CPU core while the guest runs).
+# Both default to off, which is the upstream behaviour.
+#   MAX_ESP32_SESSIONS       concurrent workers; 0 / unset = unlimited
+#   ESP32_SESSION_TIMEOUT_S  wall-clock seconds a worker may run; 0 / unset = no limit
+
+def _env_int(name: str) -> int:
+    try:
+        return max(0, int(os.environ.get(name, '') or 0))
+    except ValueError:
+        logger.warning('%s=%r is not an integer, ignored', name, os.environ.get(name))
+        return 0
+
+
+def max_esp32_sessions() -> int:
+    return _env_int('MAX_ESP32_SESSIONS')
+
+
+def esp32_session_timeout_s() -> int:
+    return _env_int('ESP32_SESSION_TIMEOUT_S')
+
+
+SESSION_LIMIT_MESSAGE = (
+    'The simulator is busy: all {limit} ESP32 slots are in use. '
+    'Try again in a few minutes.'
+)
+SESSION_TIMEOUT_MESSAGE = (
+    'Simulation stopped after {minutes} minutes to free the slot for other '
+    'visitors. Press Run to start again.'
+)
 
 
 # ── Manager ───────────────────────────────────────────────────────────────────
@@ -255,6 +290,16 @@ class EspLibManager:
         if not firmware_b64:
             logger.info('start_instance %s: no firmware — skipping worker launch', client_id)
             return
+
+        limit = max_esp32_sessions()
+        if limit:
+            with self._instances_lock:
+                running = len(self._instances)
+            if running >= limit:
+                logger.warning('start_instance %s refused: %d/%d ESP32 sessions running',
+                               client_id, running, limit)
+                await callback('error', {'message': SESSION_LIMIT_MESSAGE.format(limit=limit)})
+                return
 
         machine  = _MACHINE.get(board_type, 'esp32-picsimlab')
         lib_path = lib_riscv_path() if board_type in _RISCV_BOARDS else lib_xtensa_path()
@@ -318,6 +363,13 @@ class EspLibManager:
         with self._instances_lock:
             self._instances[client_id] = inst
 
+        timeout_s = esp32_session_timeout_s()
+        if timeout_s:
+            inst.deadline = loop.call_later(
+                timeout_s,
+                lambda: asyncio.ensure_future(self._expire(client_id, inst, timeout_s)),
+            )
+
         t_out = threading.Thread(
             target=self._thread_read_stdout,
             args=(inst, client_id),
@@ -340,6 +392,8 @@ class EspLibManager:
         if not inst:
             return
         inst.running = False
+        if inst.deadline is not None:
+            inst.deadline.cancel()
 
         # Flush any remaining UART bytes
         for buf in inst.uart_bufs.values():
@@ -366,6 +420,21 @@ class EspLibManager:
 
         await asyncio.to_thread(_wait_and_kill)
         logger.info('WorkerInstance %s shut down', client_id)
+
+    async def _expire(self, client_id: str, inst: _WorkerInstance, timeout_s: int) -> None:
+        """Session timeout: stop the worker if it is still the one that was armed."""
+        with self._instances_lock:
+            current = self._instances.get(client_id)
+        if current is not inst:
+            return  # restarted or stopped since; its own deadline governs it
+        logger.info('ESP32 session %s reached its %d s limit, stopping', client_id, timeout_s)
+        try:
+            await inst.callback('error', {
+                'message': SESSION_TIMEOUT_MESSAGE.format(minutes=max(1, round(timeout_s / 60))),
+            })
+        except Exception as exc:
+            logger.debug('timeout notice to %s failed: %s', client_id, exc)
+        await self.stop_instance(client_id)
 
     def load_firmware(self, client_id: str, firmware_b64: str) -> None:
         """Hot-reload firmware: stop the current worker and start a fresh one."""

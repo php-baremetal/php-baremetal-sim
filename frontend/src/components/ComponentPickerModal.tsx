@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import { profileBoards } from '../lib/simProfile';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { ComponentRegistry } from '../services/ComponentRegistry';
@@ -391,7 +392,9 @@ export const ComponentPickerModal: React.FC<ComponentPickerModalProps> = ({
 
   // Boards list: static OSS kinds + overlay-registered boards (proBoardRegistry).
   const allBoards = useMemo(() => {
-    return [...ALL_BOARDS, ...(listProBoards().map((d) => d.kind) as BoardKind[])];
+    // php-baremetal fork: profileBoards() keeps only the ESP32-S3 kinds under
+    // VITE_SIM_PROFILE=php-baremetal (no-op otherwise).
+    return profileBoards([...ALL_BOARDS, ...(listProBoards().map((d) => d.kind) as BoardKind[])]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proBoardsVersion]);
 

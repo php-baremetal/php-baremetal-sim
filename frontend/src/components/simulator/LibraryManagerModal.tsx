@@ -20,8 +20,10 @@ import {
 } from '../../services/micropythonLibs';
 import type { MpyPackage } from '../../services/micropythonLibs';
 import { useSimulatorStore } from '../../store/useSimulatorStore';
+import { useEditorStore } from '../../store/useEditorStore';
 import { boardDisplayName } from '../../types/board';
 import './LibraryManagerModal.css';
+import { PhpbmPackagesModal } from './PhpbmPackagesModal';
 
 interface LibraryManagerModalProps {
   isOpen: boolean;
@@ -72,6 +74,13 @@ export const LibraryManagerModal: React.FC<LibraryManagerModalProps> = ({ isOpen
   // and "Add to project" writes the package's files into this board's file
   // group — no libraries.json, no arduino-cli.
   const isMpy = activeBoard?.languageMode === 'micropython';
+  // php-baremetal fork: a board whose files carry a composer.json is a
+  // php-baremetal project; its libraries are composer packages (PhpbmPackagesModal).
+  const isPhpbm = useEditorStore((s) =>
+    activeBoard
+      ? (s.fileGroups[activeBoard.activeFileGroupId] ?? []).some((f) => f.name === 'composer.json')
+      : false,
+  );
   const [mpyResults, setMpyResults] = useState<MpyPackage[]>([]);
   // Bumped after add/remove so the "In project" pills re-derive from the
   // file group (which lives outside React state).
@@ -377,6 +386,16 @@ export const LibraryManagerModal: React.FC<LibraryManagerModalProps> = ({ isOpen
   }, [isMpy, mpyGroupId, searchQuery, mpyResults, mpyTick]);
 
   if (!isOpen) return null;
+  if (isPhpbm && activeBoard) {
+    return createPortal(
+      <PhpbmPackagesModal
+        groupId={activeBoard.activeFileGroupId}
+        boardLabel={boardDisplayName(activeBoard)}
+        onClose={onClose}
+      />,
+      document.body,
+    );
+  }
   const browsing = !searchQuery.trim();
 
   // Portaled to <body>: the toolbar ancestor has container-type

@@ -1,5 +1,7 @@
 import { useEffect, type ReactElement } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { PHP_BAREMETAL_PROFILE } from './lib/simProfile';
+import { ExamplesListPage } from './pages/php-baremetal/ExamplesListPage';
 import { EditorPage } from './pages/EditorPage';
 import { ExamplesPage } from './pages/ExamplesPage';
 // Login, Register, ForgotPassword, ResetPassword, Admin, UserProfile,
@@ -48,7 +50,8 @@ const ROOT_ELEMENT: ReactElement = <RootRoute />;
 const ROUTES: { path: string; element: ReactElement; index?: boolean }[] = [
   { path: '/', element: ROOT_ELEMENT, index: true },
   { path: 'editor', element: <EditorPage /> },
-  { path: 'examples', element: <ExamplesPage /> },
+  // php-baremetal fork: the site's own examples list under the profile.
+  { path: 'examples', element: PHP_BAREMETAL_PROFILE ? <ExamplesListPage /> : <ExamplesPage /> },
   // /examples/<id> = SEO landing (preview, badges, "Open in Simulator" CTA).
   // /example/<id>  = live editor with the example pre-loaded; the URL
   //                  stays pinned so links are shareable + bookmarkable.

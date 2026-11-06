@@ -14,6 +14,7 @@ import { verifyCircuitFromStore } from '../../simulation/verify/verifyFromStore'
 import { CircuitVerificationModal } from '../simulator/CircuitVerificationModal';
 import type { BoardKind, LanguageMode } from '../../types/board';
 import { BOARD_KIND_FQBN, BOARD_SUPPORTS_ESPIDF, BOARD_SUPPORTS_MICROPYTHON, fqbnForLanguage, isKnownBoardKind, isPiBoardKind, boardDisplayName } from '../../types/board';
+import { BOARD_SUPPORTS_PHP } from '../../types/board';
 import { compileCode } from '../../services/compilation';
 import { compileOptionsForBoard } from '../../utils/boardCompile';
 import {
@@ -50,6 +51,19 @@ import {
   trackOpenLibraryManager,
 } from '../../utils/analytics';
 import './EditorToolbar.css';
+import { COMPILE_ENABLED } from '../../lib/features';
+import { isPhpbmProject } from '../../services/phpbmBuild';
+
+/** php-baremetal fork: whether this board's sources can be built here. A
+ *  php-baremetal project (composer.json in the board's files) builds through
+ *  /api/phpbm even where the Arduino/ESP-IDF toolchains are disabled. */
+function boardCanCompile(
+  board: { activeFileGroupId?: string; languageMode?: string } | null | undefined,
+): boolean {
+  if (COMPILE_ENABLED || board?.languageMode === 'php') return true;
+  if (!board?.activeFileGroupId) return false;
+  return isPhpbmProject(useEditorStore.getState().getGroupFiles(board.activeFileGroupId));
+}
 import { ThemeToggle } from '../layout/ThemeToggle';
 import { getResolvedTheme } from '../../lib/theme';
 
@@ -481,6 +495,15 @@ export const EditorToolbar = ({
   );
 
   const handleCompile = async () => {
+    if (!boardCanCompile(useSimulatorStore.getState().boards.find((b) => b.id === activeBoardId))) {
+      // Firmware-only instance: there is no toolchain behind /api/compile.
+      setMessage({
+        type: 'error',
+        text: 'Compiling is disabled on this instance. Open a php-baremetal example, or use "Upload firmware".',
+      });
+      autoRunAfterCompile.current = false;
+      return;
+    }
     setCompiling(true);
     setMessage(null);
     setConsoleOpen(true);
@@ -949,7 +972,7 @@ export const EditorToolbar = ({
           stopBoard(activeBoardId);
           await new Promise((resolve) => setTimeout(resolve, 300));
         }
-        if (!board?.compiledProgram || codeChangedSinceLastCompile) {
+        if (!board?.compiledProgram || (boardCanCompile(board) && codeChangedSinceLastCompile)) {
           console.log('[handleRun] auto-compile + run');
           autoRunAfterCompile.current = true;
           await handleCompile();
@@ -997,7 +1020,7 @@ export const EditorToolbar = ({
       }
 
       // Auto-compile if no program or code changed since last compile
-      if (!board?.compiledProgram || codeChangedSinceLastCompile) {
+      if (!board?.compiledProgram || (boardCanCompile(board) && codeChangedSinceLastCompile)) {
         autoRunAfterCompile.current = true;
         await handleCompile();
         // After compile, check if it succeeded and run
@@ -1755,9 +1778,10 @@ export const EditorToolbar = ({
               the BoardSelector dropdown elsewhere in the toolbar. */}
           {activeBoard &&
             (BOARD_SUPPORTS_MICROPYTHON.has(activeBoard.boardKind) ||
-              BOARD_SUPPORTS_ESPIDF.has(activeBoard.boardKind)) && (
+              BOARD_SUPPORTS_ESPIDF.has(activeBoard.boardKind) ||
+              BOARD_SUPPORTS_PHP.has(activeBoard.boardKind)) && (
             <select
-              className="tb-lang-select"
+              className={`tb-lang-select${activeBoard.languageMode === 'php' ? ' tb-lang-select--wide' : ''}`}
               value={activeBoard.languageMode ?? 'arduino'}
               onChange={(e) => {
                 if (activeBoardId)
@@ -1791,6 +1815,10 @@ export const EditorToolbar = ({
               {BOARD_SUPPORTS_ESPIDF.has(activeBoard.boardKind) && (
                 <option value="espidf">ESP-IDF</option>
               )}
+              {/* php-baremetal fork: PHP firmware built by phpbm. */}
+              {BOARD_SUPPORTS_PHP.has(activeBoard.boardKind) && (
+                <option value="php">PHP-Baremetal</option>
+              )}
             </select>
           )}
 
@@ -1799,6 +1827,7 @@ export const EditorToolbar = ({
             <button
               onClick={handleCompile}
               disabled={compiling || !activeBoard}
+              style={boardCanCompile(activeBoard) ? undefined : { display: 'none' }}
               className="tb-btn tb-btn-compile"
               title={
                 !activeBoard
@@ -2059,7 +2088,7 @@ export const EditorToolbar = ({
               </div>
             )}
 
-            {targetCount > 1 && (
+            {COMPILE_ENABLED && targetCount > 1 && (
               <>
                 <div className="tb-divider" />
 

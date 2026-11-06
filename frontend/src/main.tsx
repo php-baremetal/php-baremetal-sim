@@ -32,6 +32,17 @@ import './components/velxio-components/Ds3231Element';
 import './components/velxio-components/GpsNeo6mElement';
 import './components/velxio-components/EPaperElement';
 import App from './App.tsx';
+import { installPhpbmProvider } from './services/phpbmBuild';
+import { installSimProfile } from './lib/simProfile';
+import { adoptPhpStarterWorkspace } from './lib/simProfileWorkspace';
+import { installSimProfileRoutes } from './lib/simProfileRoutes';
+
+// php-baremetal fork: projects with a composer.json build through /api/phpbm;
+// VITE_SIM_PROFILE=php-baremetal hides what this deployment cannot run.
+installPhpbmProvider();
+installSimProfile();
+installSimProfileRoutes();
+adoptPhpStarterWorkspace();
 
 // Configure monaco-editor for offline use via local static assets
 const monacoVsPath = `${import.meta.env.BASE_URL}monaco/vs`;

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { generateUUID } from '../utils/uuid';
+import { PHP_DEFAULT_FILES } from '../lib/phpProjectTemplate';
 import { isPiBoardKind } from '../types/board';
 import { getProBoard } from '../lib/proBoardRegistry';
 
@@ -475,8 +476,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((s) => {
       if (s.fileGroups[groupId]) return s; // already exists
 
-      // Resolve overloaded parameter
-      const initialFiles = Array.isArray(languageModeOrFiles) ? languageModeOrFiles : undefined;
+      // Resolve overloaded parameter. 'php' (php-baremetal fork) seeds a whole
+      // project — index.php + composer.json — so it resolves to files here.
+      const initialFiles = Array.isArray(languageModeOrFiles)
+        ? languageModeOrFiles
+        : languageModeOrFiles === 'php'
+          ? PHP_DEFAULT_FILES
+          : undefined;
       const languageMode =
         typeof languageModeOrFiles === 'string' ? languageModeOrFiles : undefined;
 

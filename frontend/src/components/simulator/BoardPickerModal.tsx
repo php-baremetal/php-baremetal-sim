@@ -1,5 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { profileBoards } from '../../lib/simProfile';
 import { useTranslation } from 'react-i18next';
 import type { BoardKind } from '../../types/board';
 import { BOARD_KIND_LABELS } from '../../types/board';
@@ -98,7 +99,7 @@ export const BoardPickerModal = ({ isOpen, onClose, onSelectBoard }: BoardPicker
         <h3 style={{ color: 'var(--wb-12)', margin: '0 0 16px 0', fontSize: 16 }}>{t('editor.boardPicker.title')}</h3>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {BOARDS.map((kind) => (
+          {profileBoards(BOARDS).map((kind) => (
             <button
               key={kind}
               onClick={() => {

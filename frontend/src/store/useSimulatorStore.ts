@@ -23,6 +23,7 @@ import type { BoardKind, BoardInstance, LanguageMode, WifiStatus } from '../type
 import {
   BOARD_KIND_FQBN,
   BOARD_SUPPORTS_ESPIDF,
+  BOARD_SUPPORTS_PHP,
   BOARD_SUPPORTS_MICROPYTHON,
   EMULATED_WIFI_SSIDS,
   isPiBoardKind,
@@ -3317,6 +3318,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => {
       // Only allow MicroPython / ESP-IDF for supported boards
       if (mode === 'micropython' && !BOARD_SUPPORTS_MICROPYTHON.has(board.boardKind)) return;
       if (mode === 'espidf' && !BOARD_SUPPORTS_ESPIDF.has(board.boardKind)) return;
+      if (mode === 'php' && !BOARD_SUPPORTS_PHP.has(board.boardKind)) return;
 
       // Stop any running simulation
       if (board.running) get().stopBoard(boardId);
@@ -3348,10 +3350,15 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => {
       // pin on an M5Stack.
       const editorStore = useEditorStore.getState();
       editorStore.deleteFileGroup(board.activeFileGroupId);
-      const modeSeed = getBoardSeedFiles(
-        board.boardKind,
-        mode === 'micropython' || mode === 'espidf' ? mode : 'arduino',
-      );
+      // php-baremetal fork: PHP seeds its own project (index.php +
+      // composer.json, lib/phpProjectTemplate.ts), never a board's sketch.
+      const modeSeed =
+        mode === 'php'
+          ? null
+          : getBoardSeedFiles(
+              board.boardKind,
+              mode === 'micropython' || mode === 'espidf' ? mode : 'arduino',
+            );
       editorStore.createFileGroup(board.activeFileGroupId, modeSeed ?? mode);
       editorStore.setActiveGroup(board.activeFileGroupId);
     },

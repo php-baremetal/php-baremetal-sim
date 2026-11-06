@@ -21,6 +21,7 @@ function getLanguage(filename: string): string {
   if (ext === 's' || ext === 'asm') return RETRO_ASM_ID;
   if (['ino', 'cpp', 'c', 'cc', 'h', 'hpp'].includes(ext)) return 'cpp';
   if (ext === 'py') return 'python';
+  if (ext === 'php') return 'php'; // php-baremetal fork: index.php & co.
   if (ext === 'json') return 'json';
   if (ext === 'md') return 'markdown';
   if (ext === 'hex') return 'plaintext';

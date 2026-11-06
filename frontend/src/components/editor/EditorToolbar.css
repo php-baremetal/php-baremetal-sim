@@ -231,6 +231,11 @@
   max-width: 74px;
 }
 
+/* php-baremetal fork: room for "PHP-Baremetal" in the compact toolbar. */
+.unified-toolbar.unified-toolbar--compact .tb-lang-select.tb-lang-select--wide {
+  max-width: 120px;
+}
+
 .unified-toolbar.unified-toolbar--compact .tb-btn {
   padding: 0 5px;
 }

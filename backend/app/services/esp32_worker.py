@@ -422,6 +422,36 @@ _WIFI_MACHINES = {'esp32-picsimlab'}
 _WIFI_MAC_RANGES = ((0x3ff73000, 0x3ff74000), (0x60033000, 0x60034000))
 
 
+# php-baremetal fork. The esp32s3(-picsimlab) machine attaches an SSI PSRAM of
+# machine->ram_size when QEMU gets -m (hw/xtensa/esp32s3.c,
+# esp32s3_machine_init_psram; esp32s3_fixup_ram_size rounds up to 2/4/8/16/32
+# MB). Without -m there is no PSRAM, and a firmware built with CONFIG_SPIRAM
+# (SPIRAM_IGNORE_NOTFOUND off, the IDF default) aborts in cpu_start with
+# "PSRAM chip is not connected" and reboots forever.
+_PSRAM_MB_MAX = 32
+
+
+def psram_arg(machine: str, requested_mb=None, env=None) -> str | None:
+    """The `-m` value giving this machine external PSRAM, or None for none.
+
+    `requested_mb` comes from the start config (`psram_mb`); when absent the
+    deployment default VELXIO_ESP32S3_PSRAM_MB applies. Only the S3 machines
+    model PSRAM this way. Zero, empty or unparsable values mean no PSRAM, and
+    anything above 32 MB is clamped, as QEMU itself would.
+    """
+    if 's3' not in machine:
+        return None
+    env = os.environ if env is None else env
+    raw = requested_mb if requested_mb not in (None, '') else env.get('VELXIO_ESP32S3_PSRAM_MB')
+    try:
+        mb = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if mb <= 0:
+        return None
+    return f'{min(mb, _PSRAM_MB_MAX)}M'
+
+
 def wifi_nic_arg(machine: str, wifi_enabled: bool,
                  hostfwd_port: int = 0) -> str | None:
     """The `-nic` value for this machine, or None if it gets no radio.
@@ -868,6 +898,11 @@ def main() -> None:  # noqa: C901  (complexity OK for inline worker)
         b'-L', rom_dir,
         b'-drive', f'file={firmware_path},if=mtd,format=raw'.encode(),
     ]
+
+    psram = psram_arg(machine, cfg.get('psram_mb'))
+    if psram:
+        args_list.extend([b'-m', psram.encode()])
+        _log(f'PSRAM attached: -m {psram}')
 
     # Deterministic instruction counting for stable timers. Always on for the
     # ESP32-C3 (RISC-V needs deterministic timing to boot); on the Xtensa

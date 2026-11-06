@@ -1,0 +1,125 @@
+# php-baremetal simulator image (php-baremetal fork of Velxio).
+#
+# What it runs: the Velxio frontend + backend with ESP32 emulation, where
+# visitors open php-baremetal examples, edit index.php / composer.json, add
+# packages from repository.php-baremetal.com and press Run. PHP projects are
+# built by phpbm on the server (engine cached per lock, sources repacked in
+# <1 s); the Arduino / ESP-IDF sketch compilers are NOT in this image
+# (VELXIO_ENABLE_COMPILE=0), which is what keeps it to one ESP-IDF.
+#
+# Build context needs (both ignored by git, see FORK.md):
+#   prebuilt/qemu/    libqemu-xtensa.so, libqemu-riscv32.so + 4 ROMs (or QEMU_RELEASE_URL)
+#   prebuilt/phpbm/   the phpbm CLI (tools/stage-phpbm.sh), until it has a public release
+#
+#   docker buildx build -f Dockerfile.php-baremetal -t php-baremetal-sim --load .
+
+ARG PHP_IMAGE=php:8.4-cli-bookworm
+ARG PY_IMAGE=python:3.12-slim-bookworm
+
+# ---- QEMU .so + ROMs: local prebuilt/qemu/, else a release URL ----------------
+FROM ubuntu:22.04 AS qemu-provider
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+ARG TARGETARCH
+# e.g. https://github.com/php-baremetal/php-baremetal-sim-qemu/releases/download/<tag>
+ARG QEMU_RELEASE_URL=
+COPY prebuilt/qemu/ /qemu/
+RUN cd /qemu && for base in libqemu-xtensa libqemu-riscv32; do \
+      if [ ! -f "$base.so" ]; then \
+        [ -n "$QEMU_RELEASE_URL" ] || { echo "no prebuilt/qemu/$base.so and no QEMU_RELEASE_URL" >&2; exit 1; }; \
+        curl -fSL -o "$base.so" "$QEMU_RELEASE_URL/$base-$TARGETARCH.so"; \
+      fi; done \
+ && for f in esp32-v3-rom.bin esp32-v3-rom-app.bin esp32c3-rom.bin esp32s3_rev0_rom.bin; do \
+      [ -f "$f" ] || curl -fSL -o "$f" "$QEMU_RELEASE_URL/$f"; done \
+ && rm -f .gitkeep && ls -lh /qemu
+
+# ---- Frontend: firmware-only build (no Compile button for sketches) ----------
+FROM node:20 AS frontend-builder
+WORKDIR /app
+COPY frontend/ frontend/
+COPY scripts/ scripts/
+WORKDIR /app/frontend
+ENV VITE_ENABLE_COMPILE=false \
+    VITE_SIM_PROFILE=php-baremetal
+# npm 11: see Dockerfile.standalone (npm 10.8's arborist crashes on this tree).
+RUN npm install -g npm@11 --no-audit --no-fund \
+ && rm -f package-lock.json \
+ && npm install --include=optional \
+ && npm run build:docker
+
+FROM ${PY_IMAGE} AS python
+
+# ---- Runtime: PHP 8.4 (phpbm, composer) + Python 3.12 (backend) ---------------
+FROM ${PHP_IMAGE}
+
+# nginx; the libqemu runtime deps; git/tar/xz + the ESP-IDF host prerequisites
+# phpbm's toolchain needs; Python 3.12's shared-library deps.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      nginx curl ca-certificates git unzip xz-utils bzip2 wget \
+      flex bison gperf ccache libffi8 libssl3 libusb-1.0-0 \
+      libglib2.0-0 libgcrypt20 libslirp0 libpixman-1-0 libfdt1 \
+      libsqlite3-0 libbz2-1.0 liblzma5 libreadline8 libncursesw6 libuuid1 libexpat1 zlib1g tzdata \
+ && rm -rf /var/lib/apt/lists/* \
+ && rm -f /etc/nginx/sites-enabled/default
+
+# Python 3.12 from the official image (self-contained under /usr/local; no
+# file overlaps the PHP image's /usr/local/{bin/php,lib/php,etc/php}).
+COPY --from=python /usr/local/ /usr/local/
+RUN ldconfig && python3 --version && php --version | head -1
+
+# Composer + the conductor plugin (must be active while composer resolves).
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+ENV COMPOSER_HOME=/opt/composer COMPOSER_ALLOW_SUPERUSER=1
+RUN composer global config --no-interaction allow-plugins.php-baremetal/conductor true \
+ && composer global require --no-interaction --no-progress php-baremetal/conductor
+
+# phpbm + the esp32 SDK + its ESP-IDF v6.1 toolchain (~6 GB), under PHPBM_HOME.
+COPY prebuilt/phpbm/ /opt/phpbm/
+ENV PHPBM_HOME=/opt/phpbm-home \
+    PHPBM_PYTHON=/usr/local/bin/python3 \
+    PHPBM_CMD="php /opt/phpbm/phpbm"
+COPY frontend/src/data/php-baremetal/ /app/php-examples/
+RUN set -eux; seed=/tmp/phpbm-seed; mkdir -p "$seed/project-src"; \
+    first=$(ls -d /app/php-examples/*/ | head -1); \
+    cp "$first/composer.json" "$seed/"; cp "$first/index.php" "$seed/project-src/"; \
+    cd "$seed"; composer install --no-interaction --no-progress; \
+    php /opt/phpbm/phpbm sdk:install esp32; \
+    php /opt/phpbm/phpbm toolchain:install; \
+    rm -rf "$seed"; \
+    find "$PHPBM_HOME" -name '*.tar.*' -path '*dist*' -delete || true
+
+# ---- Velxio backend + frontend ----
+WORKDIR /app
+RUN mkdir -p /app/data /app/lib
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY backend/app/ ./app/
+COPY backend/sdk/ ./sdk/
+COPY backend/scripts/ ./scripts/
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+COPY --from=qemu-provider /qemu/ /app/lib/
+
+ENV QEMU_ESP32_LIB=/app/lib/libqemu-xtensa.so \
+    QEMU_RISCV32_LIB=/app/lib/libqemu-riscv32.so \
+    VELXIO_ENABLE_COMPILE=0 \
+    VELXIO_ENABLE_PHPBM=1 \
+    VELXIO_ESP32S3_PSRAM_MB=8 \
+    MAX_ESP32_SESSIONS=4 \
+    ESP32_SESSION_TIMEOUT_S=600 \
+    PHPBM_SIM_CACHE=/var/cache/phpbm-sim \
+    PHPBM_MAX_PARALLEL_BUILDS=1 \
+    VELXIO_NEWS=off
+
+# Build the gallery's php-baremetal firmware with the same builder visitors
+# use: the images are served as /firmware/php-baremetal/<id>.bin, and every
+# example's engine is already in PHPBM_SIM_CACHE (a named volume mounted there
+# starts as a copy of it), so editing an example's index.php is instant.
+RUN cd /app && python3 -m scripts.phpbm_warm /app/php-examples /usr/share/nginx/html/firmware/php-baremetal \
+ && ls -lh /usr/share/nginx/html/firmware/php-baremetal
+
+VOLUME ["/app/data", "/var/cache/phpbm-sim"]
+EXPOSE 80
+CMD ["/app/entrypoint.sh"]

@@ -14,6 +14,12 @@ if [ -z "$SECRET_KEY" ]; then
     export SECRET_KEY="$(cat "$SECRET_FILE")"
 fi
 
+# php-baremetal fork: the compile toolchains (arduino-cli cores, ESP-IDF) are
+# only set up where compiling is on and arduino-cli exists. A firmware-only
+# image (VELXIO_ENABLE_COMPILE=0, no arduino-cli/ESP-IDF) skips all of it;
+# before, the ESP32 core install below ran without `|| true` under `set -e`
+# and killed the container.
+if [ "${VELXIO_ENABLE_COMPILE:-1}" != "0" ] && command -v arduino-cli >/dev/null 2>&1; then
 # Ensure arduino-cli config and board manager URLs are set up
 if [ ! -f /root/.arduino15/arduino-cli.yaml ]; then
     echo "📦 Initializing arduino-cli config..."
@@ -96,6 +102,10 @@ else
         echo "ESP32 core is $ESP32_VER, need ${ESP32_CORE_VERSION} - reinstalling..."
         arduino-cli core install esp32:esp32@${ESP32_CORE_VERSION}
     fi
+fi
+
+else
+    echo "ℹ️  Compile toolchains skipped (VELXIO_ENABLE_COMPILE=${VELXIO_ENABLE_COMPILE:-1}, arduino-cli: $(command -v arduino-cli || echo none))"
 fi
 
 # Start FastAPI backend in the background on port 8001

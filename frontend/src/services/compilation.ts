@@ -254,14 +254,18 @@ export async function compileCode(
   const files = deviceFiles(projectFiles);
   // Overlay seam: a project that ships a prebuilt image instead of sources the
   // server can build returns it here. No provider in OSS builds -> null.
+  // php-baremetal fork: the provider also gets onProgress, so a build it runs
+  // remotely can stream its log like a normal compile (extra arg: harmless
+  // to a provider that ignores it).
   const prebuilt = await (
     window as {
       __velxio_prebuilt_firmware__?: (
         files: SketchFile[],
         board: string,
+        onProgress?: CompileProgress,
       ) => Promise<CompileResult | null>;
     }
-  ).__velxio_prebuilt_firmware__?.(files, board);
+  ).__velxio_prebuilt_firmware__?.(files, board, onProgress);
   if (prebuilt) return prebuilt;
 
   console.log('Sending compilation request to:', `${getApiBase()}/compile/start`);

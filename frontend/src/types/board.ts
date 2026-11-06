@@ -32,7 +32,9 @@ export type BoardKind =
   | 'stm32-netduino2' // Netduino 2 (F205, Cortex-M3), QEMU (serial until F205 GPIO wired)
   | 'attiny85'; // AVR ATtiny85, browser emulation (avr8js)
 
-export type LanguageMode = 'arduino' | 'micropython' | 'espidf';
+// 'php' (php-baremetal fork): PHP 8.5 firmware built by phpbm from the
+// board's composer.json + index.php (see services/phpbmBuild.ts).
+export type LanguageMode = 'arduino' | 'micropython' | 'espidf' | 'php';
 
 /** Extra QEMU-Linux board kinds registered at runtime by a private overlay
  *  (proBoardRegistry defs with `piFamily: true`). They route through the same
@@ -59,6 +61,15 @@ export function isPiBoardKind(kind: BoardKind | string): boolean {
 export function isStm32BoardKind(kind: BoardKind | string): boolean {
   return typeof kind === 'string' && kind.startsWith('stm32-');
 }
+
+/** php-baremetal fork: boards that can run PHP. The simulator builds every
+ *  php-baremetal project for the generic ESP32-S3 (quad PSRAM, UART console),
+ *  which all three S3 kinds below run on (QEMU machine esp32s3-picsimlab). */
+export const BOARD_SUPPORTS_PHP = new Set<BoardKind>([
+  'esp32-s3',
+  'xiao-esp32-s3',
+  'arduino-nano-esp32',
+] as BoardKind[]);
 
 export const BOARD_SUPPORTS_MICROPYTHON = new Set<BoardKind>([
   'raspberry-pi-pico',

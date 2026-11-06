@@ -16,6 +16,8 @@
  * through the same board-gate seam ('add' action) before anything is created.
  */
 import React, { useEffect, useMemo, useSyncExternalStore } from 'react';
+import { PHP_BAREMETAL_PROFILE } from '../../lib/simProfile';
+import { addPhpStarterBoard } from '../../lib/simProfileWorkspace';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { BoardKind } from '../../types/board';
@@ -193,7 +195,11 @@ async function findBlinkExample(kind: string): Promise<ExampleProject | undefine
 async function applyStarter(kind: string | 'blank'): Promise<void> {
   clearWorkspaceForStarter();
 
-  if (kind !== 'blank') {
+  if (kind !== 'blank' && PHP_BAREMETAL_PROFILE) {
+    // php-baremetal fork: a new project is a PHP project (index.php +
+    // composer.json), not the board's Arduino blink example.
+    addPhpStarterBoard(kind as BoardKind);
+  } else if (kind !== 'blank') {
     let example: ExampleProject | undefined;
     try {
       example = await findBlinkExample(kind);
@@ -223,6 +229,18 @@ async function applyStarter(kind: string | 'blank'): Promise<void> {
     window.history.replaceState(null, '', editorPath);
   }
 }
+
+/** php-baremetal fork: the "new project" cards under VITE_SIM_PROFILE=php-baremetal. */
+const PHP_STARTER_SECTIONS: StarterSection[] = [
+  {
+    title: 'ESP32-S3 · PHP',
+    entries: [
+      { kind: 'esp32-s3', blurb: 'Espressif ESP32-S3 DevKitC-1: every GPIO on the headers (QEMU)' },
+      { kind: 'xiao-esp32-s3', blurb: BOARD_BLURBS['xiao-esp32-s3'] ?? '' },
+      { kind: 'arduino-nano-esp32', blurb: BOARD_BLURBS['arduino-nano-esp32'] ?? '' },
+    ],
+  },
+];
 
 export interface StarterSection {
   title: string;
@@ -325,8 +343,16 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ isOpen, onCl
     getProBoardsVersion,
   );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const sections = useMemo(() => buildStarterSections(listProBoards()), [proBoardsVersion]);
+  // php-baremetal fork: under VITE_SIM_PROFILE=php-baremetal the cards are the
+  // three ESP32-S3 boards a PHP project runs on, in one section.
+  const sections = useMemo(
+    () =>
+      PHP_BAREMETAL_PROFILE
+        ? PHP_STARTER_SECTIONS
+        : buildStarterSections(listProBoards()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [proBoardsVersion],
+  );
 
   useEffect(() => {
     if (!isOpen) return;

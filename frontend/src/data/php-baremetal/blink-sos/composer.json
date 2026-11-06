@@ -1,0 +1,34 @@
+{
+  "name": "php-baremetal-examples/blink-sos",
+  "type": "project",
+  "license": "proprietary",
+  "description": "Blink an external LED in an SOS pattern via GPIO.",
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://repository.php-baremetal.com",
+      "canonical": true
+    }
+  ],
+  "require": {
+    "php-baremetal/conductor": "^1.0",
+    "php-baremetal/ext-sys": "^1.0",
+    "php-baremetal/ext-gpio": "^1.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "php-baremetal/conductor": true
+    },
+    "platform": {
+      "php": "8.5.11"
+    }
+  },
+  "extra": {
+    "baremetal": {
+      "sdk": "esp32@^2.0",
+      "board": "generic-esp32s3-quad",
+      "runtime": "init-loop",
+      "storage": "embedded"
+    }
+  }
+}

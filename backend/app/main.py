@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import asyncio
 from contextlib import asynccontextmanager
@@ -92,28 +93,42 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(compile.router, prefix="/api/compile", tags=["compilation"])
-app.include_router(compile_chip.router, prefix="/api/compile-chip", tags=["custom-chips"])
-app.include_router(compile_rom.router, prefix="/api/compile-rom", tags=["custom-chips"])
-app.include_router(libraries.router, prefix="/api/libraries", tags=["libraries"])
-# MicroPython libraries (issue #214): resolves the official micropython-lib
-# index into .py files the frontend writes into the board's workspace.
-app.include_router(
-    micropython_libs.router, prefix="/api/micropython-libs", tags=["micropython-libraries"]
-)
-app.include_router(intellisense.router, prefix="/api/intellisense", tags=["intellisense"])
-# Hardware flash: subprocesses arduino-cli upload to write a compiled
-# sketch to a real USB-attached board. Desktop-only in practice (the
-# web build has no access to local serial ports without WebSerial),
-# but the route lives in OSS so self-hosters with a sidecar reach
-# get it too.
-app.include_router(flash.router, prefix="/api/flash", tags=["flash"])
+#
+# php-baremetal fork: VELXIO_ENABLE_COMPILE=0 runs a "firmware only" instance
+# (prebuilt examples + Upload firmware). The toolchain routes are then not
+# mounted at all, so a public instance exposes no compile CPU to visitors and
+# the image can leave ESP-IDF / arduino-cli out. Unset keeps upstream behaviour.
+COMPILE_ENABLED = os.environ.get("VELXIO_ENABLE_COMPILE", "1").strip().lower() not in ("0", "false", "no", "off")
+if COMPILE_ENABLED:
+    app.include_router(compile.router, prefix="/api/compile", tags=["compilation"])
+    app.include_router(compile_chip.router, prefix="/api/compile-chip", tags=["custom-chips"])
+    app.include_router(compile_rom.router, prefix="/api/compile-rom", tags=["custom-chips"])
+    app.include_router(libraries.router, prefix="/api/libraries", tags=["libraries"])
+    # MicroPython libraries (issue #214): resolves the official micropython-lib
+    # index into .py files the frontend writes into the board's workspace.
+    app.include_router(
+        micropython_libs.router, prefix="/api/micropython-libs", tags=["micropython-libraries"]
+    )
+    app.include_router(intellisense.router, prefix="/api/intellisense", tags=["intellisense"])
+    # Hardware flash: subprocesses arduino-cli upload to write a compiled
+    # sketch to a real USB-attached board. Desktop-only in practice (the
+    # web build has no access to local serial ports without WebSerial),
+    # but the route lives in OSS so self-hosters with a sidecar reach
+    # get it too.
+    app.include_router(flash.router, prefix="/api/flash", tags=["flash"])
 
 # Auth / projects / admin / metrics routers used to be wired up here, gated
 # on the auth/DB stack being importable. Phase 2 of the OSS split moved
 # them out of upstream entirely — they now live under the private overlay's
 # pro/backend/app/api/routes/ and are registered by register_pro(app)
 # below. The OSS image carries none of them: anonymous, stateless.
+
+# php-baremetal fork: build php-baremetal projects (composer.json + PHP
+# sources) into simulator firmware, and list the package registry. Needs
+# phpbm, composer and the esp32 toolchain on the host; off unless enabled.
+if os.environ.get("VELXIO_ENABLE_PHPBM", "0").strip().lower() in ("1", "true", "yes", "on"):
+    from app.api.routes import phpbm
+    app.include_router(phpbm.router, prefix="/api/phpbm", tags=["php-baremetal"])
 
 # WebSockets
 from app.api.routes import simulation

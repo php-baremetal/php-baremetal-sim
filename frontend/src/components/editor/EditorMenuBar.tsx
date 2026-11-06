@@ -19,6 +19,8 @@
  * outside clicks close.
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { ATTRIBUTION, SITE_URL, SOURCE_URL, UPSTREAM_URL } from '../../lib/brand';
+import { PHP_BAREMETAL_PROFILE } from '../../lib/simProfile';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSimulatorStore } from '../../store/useSimulatorStore';
@@ -59,7 +61,8 @@ type Item =
 // web editor mirrors that structure so both feel like one product. They
 // replace the marketing nav this header no longer shows, opening in a new
 // tab so the editor (and any unsaved work) stays put.
-const GITHUB_URL = 'https://github.com/davidmonterocrespo24/velxio';
+// php-baremetal fork: this deployment's source (AGPL §13) + the upstream project.
+const GITHUB_URL = SOURCE_URL;
 const DISCORD_URL = 'https://discord.gg/3mARjJrh4E';
 // In the OSS build the marketing pages live on velxio.dev, not in this app
 // (the overlay registers them only in pro builds) — link absolute, exactly
@@ -178,7 +181,17 @@ export const EditorMenuBar: React.FC = () => {
     },
   ];
 
-  const helpItems: Item[] = [
+  // php-baremetal fork: under VITE_SIM_PROFILE=php-baremetal the Help menu
+  // points at php-baremetal, never at velxio.dev's docs/pricing/blog.
+  const helpItems: Item[] = PHP_BAREMETAL_PROFILE
+    ? [
+        { kind: 'link', href: '/examples', label: t('header.nav.examples', 'Examples') },
+        { kind: 'link', href: SITE_URL, label: 'php-baremetal.com' },
+        { kind: 'separator' },
+        { kind: 'link', href: GITHUB_URL, label: 'Source code of this site (AGPLv3)' },
+        { kind: 'link', href: UPSTREAM_URL, label: ATTRIBUTION },
+      ]
+    : [
     // Only present once a post has been delivered — the announcement is a
     // toast now, and this is how it stays reachable after it retires.
     {
@@ -196,7 +209,9 @@ export const EditorMenuBar: React.FC = () => {
     { kind: 'link', href: `${SITE}/about`, label: t('editor.menu.about', 'About Velxio') },
     { kind: 'separator' },
     { kind: 'link', href: DISCORD_URL, label: t('editor.menu.discord', 'Discord Community') },
-    { kind: 'link', href: GITHUB_URL, label: t('editor.menu.github', 'GitHub Repository') },
+    { kind: 'link', href: GITHUB_URL, label: 'Source code of this site (AGPLv3)' },
+    { kind: 'link', href: UPSTREAM_URL, label: ATTRIBUTION },
+    { kind: 'link', href: SITE_URL, label: 'php-baremetal.com' },
   ];
 
   // Undo/redo render specially above (live canvas history state); the rest
@@ -453,6 +468,9 @@ export const EditorMenuBar: React.FC = () => {
               (item) =>
                 item.kind !== 'command' || !item.optional || hasEditorCommand(item.id),
             )
+            // php-baremetal fork: no PRO items, nothing that publishes to
+            // velxio.dev (Share / Embed), under VITE_SIM_PROFILE=php-baremetal.
+            .filter((item) => !PHP_BAREMETAL_PROFILE || item.kind !== 'command' || (!item.pro && item.id !== 'project.share'))
             .map((item, i) =>
               item.kind === 'separator' ? (
                 <div key={`sep-${i}`} className="emb-separator" />
@@ -472,7 +490,8 @@ export const EditorMenuBar: React.FC = () => {
       {menu('file', t('editor.menu.file', 'File'), fileItems)}
       {menu('edit', t('editor.menu.edit', 'Edit'), editItems)}
       {menu('view', t('editor.menu.view', 'View'), viewItems)}
-      {menu('account', t('editor.menu.account', 'Account'), [])}
+      {/* php-baremetal fork: this deployment has no accounts. */}
+      {!PHP_BAREMETAL_PROFILE && menu('account', t('editor.menu.account', 'Account'), [])}
       {menu('help', t('editor.menu.help', 'Help'), helpItems)}
     </div>
   );

@@ -17,6 +17,7 @@ import { getInstalledLibraries, installLibrary } from '../services/libraryServic
 import { trackOpenExample } from './analytics';
 import { stripBrandPrefix } from './exampleToBuildNetlistInput';
 import { resolveExampleSdFiles } from './sdCardFiles';
+import { resolvePrebuiltFirmware } from './prebuiltFirmware';
 import { exampleWireCorners } from './exampleWireRoutes';
 
 export interface LibraryInstallProgress {
@@ -144,6 +145,13 @@ export async function loadExample(
   const sdFilesByBoard = await Promise.all(
     (example.boards ?? []).map((eb) => resolveExampleSdFiles(eb.sdFiles)),
   );
+  // Prebuilt firmware images (php-baremetal fork), fetched up front for the
+  // same reason as the SD files above.
+  const firmwareByBoard = await Promise.all(
+    (example.boards ?? []).map((eb) =>
+      resolvePrebuiltFirmware(eb.prebuiltFirmwareUrl, eb.boardKind as BoardKind),
+    ),
+  );
   // The wire corners made for this example offline (fixed data, nothing is
   // routed here), read before the canvas changes for the same reason.
   const storedCorners = await exampleWireCorners(example);
@@ -207,6 +215,20 @@ export async function loadExample(
       const sdFiles = sdFilesByBoard[idx];
       if (sdFiles.length) {
         useSimulatorStore.getState().updateBoard(boardId, { sdFiles });
+      }
+
+      // php-baremetal fork: a board shipping a composer.json is a PHP project;
+      // flag the mode WITHOUT setBoardLanguageMode (which would reseed the
+      // files just loaded), so the language select reads "PHP".
+      if (eb.files?.some((f) => f.name === 'composer.json')) {
+        useSimulatorStore.getState().updateBoard(boardId, { languageMode: 'php' });
+      }
+
+      // A prebuilt firmware lands on the board exactly like "Upload firmware":
+      // the board holds a program, so Run boots it without compiling.
+      const firmware = firmwareByBoard[idx];
+      if (firmware) {
+        useSimulatorStore.getState().compileBoardProgram(boardId, firmware.program);
       }
 
       // `vfsFiles` IS the declaration that this board's code is a guest
@@ -448,5 +470,12 @@ export async function loadExample(
     const libs =
       example.libraries && example.libraries.length ? example.libraries : undefined;
     for (const b of sim.boards) sim.updateBoard(b.id, { libraries: libs });
+  }
+
+  // php-baremetal fork: mark the workspace compiled LAST, after every file
+  // group is loaded, so Run boots the prebuilt images instead of rebuilding
+  // the sources they were made from.
+  if (firmwareByBoard.some(Boolean)) {
+    useEditorStore.getState().markCompiled();
   }
 }

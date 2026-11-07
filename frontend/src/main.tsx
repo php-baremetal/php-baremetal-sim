@@ -1,6 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import { loader } from '@monaco-editor/react';
 import './index.css';
+// php-baremetal fork: iubenda's privacy widget as a strip at the bottom
+import './lib/iubenda-widget.css';
 // Side-effect import: initialises i18next BEFORE any component renders so
 // useTranslation() always resolves against a live instance. Must come
 // before App.

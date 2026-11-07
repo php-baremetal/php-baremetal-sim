@@ -1,0 +1,80 @@
+/*
+ * php-baremetal fork: the iubenda US privacy widget ("Notice at collection",
+ * "Your Privacy Choices"), loaded on sim.php-baremetal.com through Google Tag
+ * Manager. iubenda appends <div class="iub__us-widget"> to <body>, which is a
+ * row flexbox in Velxio (index.css), so the widget ended up as a third column
+ * next to the page. Here it becomes a full-width strip under everything,
+ * centred, continuing the dark site footer (pages/php-baremetal/site.css).
+ * Inert when iubenda is not loaded (no such element).
+ */
+body:has(> .iub__us-widget) { flex-wrap: wrap; }
+
+body > .iub__us-widget,
+body > .iub__us-widget.right {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  flex: 0 0 100% !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 14px 16px !important;
+  background: #121212 !important;
+  border-top: 1px solid #3a3a36 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  z-index: auto !important;
+}
+
+body > .iub__us-widget .iub__us-widget__wrapper {
+  position: static !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px 28px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body > .iub__us-widget .iub__us-widget__link {
+  appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 4px 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #c9c8c0 !important;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+/* the orange square of the site logo as a bullet */
+body > .iub__us-widget .iub__us-widget__link::before {
+  content: '' !important;
+  display: inline-block !important;
+  width: 7px !important;
+  height: 7px !important;
+  border: 2px solid #e4572e !important;
+  background: none !important;
+  position: static !important;
+}
+body > .iub__us-widget .iub__us-widget__link:hover,
+body > .iub__us-widget .iub__us-widget__link:focus-visible { color: #ff8a5c !important; }
+body > .iub__us-widget .iub__us-widget__link:focus-visible { outline: 2px solid #e4572e !important; outline-offset: 3px !important; }
+/* iubenda's own icon inside "Your Privacy Choices", if any, keeps its size */
+body > .iub__us-widget .iub__us-widget__link svg,
+body > .iub__us-widget .iub__us-widget__link img { width: 26px !important; height: auto !important; }
